@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Code, Target, Zap, TrendingUp, Handshake, DollarSign, Brain, Gem, ShieldCheck, RefreshCw, Layers, Upload, TestTube, Rocket, MessageSquareText, ThumbsUp, XCircle, ChevronRight, BarChart3 } from 'lucide-react';
+import { Lightbulb, Code, Target, Zap, TrendingUp, Handshake, DollarSign, Brain, Gem, ShieldCheck, RefreshCw, Layers, Upload, TestTube, Rocket, MessageSquareText, ThumbsUp, XCircle, ChevronRight, BarChart3, Loader2 } from 'lucide-react';
 
 // Componente del Modal de Solicitud de Demo
 const RequestDemoModal = ({ onClose }) => {
@@ -124,7 +124,8 @@ const App = () => {
   const [mockRewrittenPrompt, setMockRewrittenPrompt] = useState('');
   const [mockScore, setMockScore] = useState('');
   const [mockRedTeamResult, setMockRedTeamResult] = useState('');
-  const [promptsTestedCount, setPromptsTestedCount] = useState(0); // Nuevo estado para el contador de prompts
+  const [promptsTestedCount, setPromptsTestedCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false); // Nuevo estado para indicar carga
 
   // Simular la carga inicial del contador (en una app real, vendría del backend)
   useEffect(() => {
@@ -132,28 +133,99 @@ const App = () => {
     setPromptsTestedCount(initialCount);
   }, []);
 
-  const handleSimulatePrompt = () => {
-    // Lógica de simulación basada en el input
-    if (promptInput.toLowerCase().includes('hola')) {
-      setMockRewrittenPrompt("Saludo Refinado: '¡Buen día! ¿Cómo puedo asistirte hoy?'");
-      setMockScore("Puntuación: 9.5/10 (Claridad Alta, Tono Excelente)");
-      setMockRedTeamResult("Red-Teaming: No se detectaron banderas rojas inmediatas.");
-    } else if (promptInput.toLowerCase().includes('tóxico') || promptInput.toLowerCase().includes('violencia')) {
-      setMockRewrittenPrompt("Prompt original marcado para revisión.");
-      setMockScore("Puntuación: 3/10 (Baja Seguridad)");
-      setMockRedTeamResult("Red-Teaming: Potencial de salida tóxica detectado. Intervención inmediata requerida.");
-    } else {
-      setMockRewrittenPrompt("Optimizado para claridad y concisión.");
-      setMockScore("Puntuación: 8.8/10 (Buen Rendimiento)");
-      setMockRedTeamResult("Red-Teaming: Riesgos menores de sesgo identificados; sin problemas críticos.");
+  const handleAnalyzePrompt = async () => {
+    if (!promptInput.trim()) {
+      alert('Por favor, ingresa un prompt para analizar.');
+      return;
     }
 
-    // Incrementar el contador de prompts simulados
-    setPromptsTestedCount(prevCount => {
-      const newCount = prevCount + 1;
-      localStorage.setItem('promptsTestedCountMock', newCount.toString()); // Persistir mock en localStorage
-      return newCount;
-    });
+    setIsLoading(true); // Activa el estado de carga
+    setMockRewrittenPrompt(''); // Limpia resultados anteriores
+    setMockScore('');
+    setMockRedTeamResult('');
+
+    try {
+      const promptForLLM = `Quiero que actúes como un evaluador experto de prompts para modelos de lenguaje. A continuación, te daré un prompt. Tu tarea es:
+
+1. Evaluar su claridad, tono y sesgos.
+2. Sugerir una versión mejorada.
+3. Asignar una puntuación del 1 al 10 a su efectividad.
+4. Explicar por qué lo reescribiste.
+
+Responde en JSON con el siguiente formato:
+{
+  "clarity": "...",
+  "tone": "...",
+  "bias": "...",
+  "rewritten_prompt": "...",
+  "score": ...,
+  "explanation": "..."
+}
+
+Prompt original:
+${promptInput}`;
+
+      const chatHistory = [];
+      chatHistory.push({ role: "user", parts: [{ text: promptForLLM }] });
+
+      const payload = {
+        contents: chatHistory,
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              "clarity": { "type": "STRING" },
+              "tone": { "type": "STRING" },
+              "bias": { "type": "STRING" },
+              "rewritten_prompt": { "type": "STRING" },
+              "score": { "type": "NUMBER" },
+              "explanation": { "type": "STRING" }
+            },
+            required: ["clarity", "tone", "bias", "rewritten_prompt", "score", "explanation"]
+          }
+        }
+      };
+
+      const apiKey = ""; // La API key se proporciona en tiempo de ejecución por Canvas
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (result.candidates && result.candidates.length > 0 &&
+          result.candidates[0].content && result.candidates[0].content.parts &&
+          result.candidates[0].content.parts.length > 0) {
+        const jsonString = result.candidates[0].content.parts[0].text;
+        const analysis = JSON.parse(jsonString);
+
+        // Actualiza los estados con los datos reales del LLM
+        setMockRewrittenPrompt(analysis.rewritten_prompt);
+        setMockScore(`Puntuación: ${analysis.score}/10 (Claridad: ${analysis.clarity}, Tono: ${analysis.tone})`);
+        setMockRedTeamResult(`Sesgo: ${analysis.bias}. Explicación: ${analysis.explanation}`);
+
+        // Incrementar el contador de prompts simulados/analizados
+        setPromptsTestedCount(prevCount => {
+          const newCount = prevCount + 1;
+          localStorage.setItem('promptsTestedCountMock', newCount.toString());
+          return newCount;
+        });
+
+      } else {
+        alert('No se pudo obtener un análisis válido del LLM. Inténtalo de nuevo.');
+        console.error("Respuesta inesperada del LLM:", result);
+      }
+    } catch (error) {
+      console.error("Error al analizar el prompt con LLM:", error);
+      alert('Hubo un error al procesar tu prompt. Por favor, revisa la consola para más detalles.');
+    } finally {
+      setIsLoading(false); // Desactiva el estado de carga
+    }
   };
 
   return (
@@ -236,7 +308,7 @@ const App = () => {
                 description: "A diferencia del código, los prompts carecen de prácticas estandarizadas, control de versiones o gestión adecuada, lo que hace que la colaboración y la auditoría sean casi imposibles."
               },
               {
-                title: "Pruebas y Monitoreo Manuales",
+                title: "Manual Testing & Monitoring",
                 description: "Las pruebas de prompts, el monitoreo del rendimiento y el establecimiento de barandales suelen ser manuales, ad hoc o totalmente ausentes, lo que arriesga resultados subóptimos de IA."
               },
               {
@@ -370,10 +442,17 @@ const App = () => {
               onChange={(e) => setPromptInput(e.target.value)}
             ></textarea>
             <button
-              onClick={handleSimulatePrompt}
-              className="bg-indigo-700 text-white px-8 py-3 rounded-full text-lg font-bold shadow-lg hover:bg-indigo-800 transition-colors duration-300 mb-6"
+              onClick={handleAnalyzePrompt} // Actualizado para usar la nueva función
+              className="bg-indigo-700 text-white px-8 py-3 rounded-full text-lg font-bold shadow-lg hover:bg-indigo-800 transition-colors duration-300 mb-6 flex items-center justify-center w-full"
+              disabled={isLoading} // Deshabilita el botón durante la carga
             >
-              Simular Análisis de PromptForge
+              {isLoading ? (
+                <>
+                  <Loader2 className="animate-spin mr-2" size={20} /> Analizando...
+                </>
+              ) : (
+                'Simular Análisis de PromptForge'
+              )}
             </button>
 
             {promptsTestedCount > 0 && (
@@ -576,4 +655,5 @@ const App = () => {
 };
 
 export default App;
+
 
