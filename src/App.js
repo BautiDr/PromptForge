@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Code, Target, Zap, TrendingUp, Handshake, DollarSign, Brain, Gem, ShieldCheck, RefreshCw, Layers, Upload, TestTube, Rocket, MessageSquareText, ThumbsUp, XCircle, ChevronRight, BarChart3, Loader2 } from 'lucide-react';
-<<<<<<< HEAD
-// Importación del SDK de Google Generative AI
-import { GoogleGenerativeAI } from '@google/generative-ai';
-=======
->>>>>>> a4e7e9e872805c30ad0dbe3c88d38d079c5e1b24
+import { Lightbulb, Code, Target, Zap, TrendingUp, Handshake, DollarSign, Brain, Gem, ShieldCheck, RefreshCw, Layers, Upload, TestTube, Rocket, MessageSquareText, ThumbsUp, XCircle, ChevronRight, BarChart3, Loader2, History } from 'lucide-react'; // Agregamos el icono History
 
 // Componente del Modal de Solicitud de Demo
 const RequestDemoModal = ({ onClose }) => {
@@ -22,7 +17,6 @@ const RequestDemoModal = ({ onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // --- ¡IMPORTANTE! REEMPLAZA 'YOUR_FORMSPREE_FORM_ID' CON EL ID REAL DE TU FORMULARIO EN FORMSPREE.IO ---
     // ID de Formspree proporcionado por el usuario: https://formspree.io/f/mrbkqpjq
     const formspreeUrl = "https://formspree.io/f/mrbkqpjq"; 
 
@@ -131,12 +125,22 @@ const App = () => {
   const [mockRedTeamResult, setMockRedTeamResult] = useState('');
   const [promptsTestedCount, setPromptsTestedCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false); // Nuevo estado para indicar carga
+  const [history, setHistory] = useState([]); // Nuevo estado para almacenar el historial
 
-  // Simular la carga inicial del contador (en una app real, vendría del backend)
+  // Cargar historial de prompts desde localStorage al iniciar la app
   useEffect(() => {
+    const storedHistory = localStorage.getItem('promptHistory');
+    if (storedHistory) {
+      setHistory(JSON.parse(storedHistory));
+    }
     const initialCount = parseInt(localStorage.getItem('promptsTestedCountMock') || '0', 10);
     setPromptsTestedCount(initialCount);
   }, []);
+
+  // Guardar historial en localStorage cada vez que cambie
+  useEffect(() => {
+    localStorage.setItem('promptHistory', JSON.stringify(history));
+  }, [history]);
 
   const handleAnalyzePrompt = async () => {
     if (!promptInput.trim()) {
@@ -150,122 +154,33 @@ const App = () => {
     setMockRedTeamResult('');
 
     try {
-      const promptForLLM = `Quiero que actúes como un evaluador experto de prompts para modelos de lenguaje. A continuación, te daré un prompt. Tu tarea es:
-
-1. Evaluar su claridad, tono y sesgos.
-2. Sugerir una versión mejorada.
-3. Asignar una puntuación del 1 al 10 a su efectividad.
-4. Explicar por qué lo reescribiste.
-
-Responde en JSON con el siguiente formato:
-{
-  "clarity": "...",
-  "tone": "...",
-  "bias": "...",
-  "rewritten_prompt": "...",
-  "score": ...,
-  "explanation": "..."
-}
-
-Prompt original:
-${promptInput}`;
-
-<<<<<<< HEAD
-      // Usa la clave API del archivo .env
-      const apiKey = process.env.REACT_APP_GEMINI_API_KEY; 
-
-      // Verifica si la API Key está definida
-      if (!apiKey) {
-        console.error("GEMINI_API_KEY no está definida en el archivo .env o no se cargó correctamente.");
-        alert("Error de configuración: La clave API de Gemini no está configurada. Consulta la consola.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Inicializa el cliente de la API de Google Generative AI
-      const gemini = new GoogleGenerativeAI(apiKey);
-      const model = gemini.getGenerativeModel({ 
-        model: "gemini-2.0-flash", // Utiliza el modelo gemini-2.0-flash
-        generationConfig: {
-          responseMimeType: "application/json", // Solicita una respuesta JSON
-        },
-      });
-
-      // Envía la solicitud al modelo
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: promptForLLM }] }],
-      });
-      
-      const response = await result.response;
-      const jsonString = response.text(); // El SDK tiene un método .text() para obtener la respuesta como string
-      const analysis = JSON.parse(jsonString);
-
-      // Actualiza los estados con los datos reales del LLM
-      setMockRewrittenPrompt(analysis.rewritten_prompt);
-      setMockScore(`Puntuación: ${analysis.score}/10 (Claridad: ${analysis.clarity}, Tono: ${analysis.tone})`);
-      setMockRedTeamResult(`Sesgo: ${analysis.bias}. Explicación: ${analysis.explanation}`);
-
-      // Incrementar el contador de prompts simulados/analizados
-      setPromptsTestedCount(prevCount => {
-        const newCount = prevCount + 1;
-        localStorage.setItem('promptsTestedCountMock', newCount.toString());
-        return newCount;
-      });
-
-    } catch (error) {
-      console.error("Error al analizar el prompt con LLM:", error);
-      // Muestra un mensaje de error más específico si el error es de red o de la API
-      if (error.message && error.message.includes("403")) {
-          alert('Error de API: Acceso denegado (código 403). Verifica tu clave API o los permisos en Google AI Studio.');
-      } else if (error.message && error.message.includes("JSON")) {
-          alert('Error de formato de respuesta: El LLM no devolvió un JSON válido. Intenta con un prompt diferente o revisa la consola.');
-      } else {
-          alert('Hubo un error al procesar tu prompt. Por favor, revisa la consola para más detalles.');
-      }
-=======
-      const chatHistory = [];
-      chatHistory.push({ role: "user", parts: [{ text: promptForLLM }] });
-
-      const payload = {
-        contents: chatHistory,
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
-              "clarity": { "type": "STRING" },
-              "tone": { "type": "STRING" },
-              "bias": { "type": "STRING" },
-              "rewritten_prompt": { "type": "STRING" },
-              "score": { "type": "NUMBER" },
-              "explanation": { "type": "STRING" }
-            },
-            required: ["clarity", "tone", "bias", "rewritten_prompt", "score", "explanation"]
-          }
-        }
-      };
-
-      const apiKey = ""; // La API key se proporciona en tiempo de ejecución por Canvas
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-      const response = await fetch(apiUrl, {
+      // Hacemos una llamada a nuestra Vercel Function (que estará en /api/analyze-prompt)
+      const response = await fetch('/api/analyze-prompt', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ promptInput: promptInput }), // Enviamos el prompt del usuario
       });
 
-      const result = await response.json();
+      const analysis = await response.json(); // La función backend ya devuelve el JSON parseado
 
-      if (result.candidates && result.candidates.length > 0 &&
-          result.candidates[0].content && result.candidates[0].content.parts &&
-          result.candidates[0].content.parts.length > 0) {
-        const jsonString = result.candidates[0].content.parts[0].text;
-        const analysis = JSON.parse(jsonString);
-
-        // Actualiza los estados con los datos reales del LLM
+      if (response.ok) { // Si la respuesta de la función backend fue exitosa (código 200)
+        // Actualiza los estados con los datos reales del LLM recibidos del backend
         setMockRewrittenPrompt(analysis.rewritten_prompt);
         setMockScore(`Puntuación: ${analysis.score}/10 (Claridad: ${analysis.clarity}, Tono: ${analysis.tone})`);
         setMockRedTeamResult(`Sesgo: ${analysis.bias}. Explicación: ${analysis.explanation}`);
+
+        // Añadir el prompt analizado al historial
+        setHistory(prevHistory => [
+          {
+            id: Date.now(), // Un ID único simple
+            originalPrompt: promptInput,
+            analysis: analysis,
+            timestamp: new Date().toLocaleString()
+          },
+          ...prevHistory // Agrega los nuevos al principio
+        ]);
 
         // Incrementar el contador de prompts simulados/analizados
         setPromptsTestedCount(prevCount => {
@@ -275,13 +190,14 @@ ${promptInput}`;
         });
 
       } else {
-        alert('No se pudo obtener un análisis válido del LLM. Inténtalo de nuevo.');
-        console.error("Respuesta inesperada del LLM:", result);
+        // Manejo de errores de la función backend
+        console.error("Error del backend al analizar el prompt:", analysis.error);
+        alert(`Error al analizar el prompt: ${analysis.error || 'Mensaje desconocido.'}`);
       }
+
     } catch (error) {
-      console.error("Error al analizar el prompt con LLM:", error);
-      alert('Hubo un error al procesar tu prompt. Por favor, revisa la consola para más detalles.');
->>>>>>> a4e7e9e872805c30ad0dbe3c88d38d079c5e1b24
+      console.error("Error de red o inesperado al llamar al backend:", error);
+      alert('Hubo un error de red o inesperado. Por favor, revisa la consola para más detalles.');
     } finally {
       setIsLoading(false); // Desactiva el estado de carga
     }
@@ -537,6 +453,31 @@ ${promptInput}`;
                 </div>
               </div>
             )}
+
+            {/* Sección de Historial de Prompts */}
+            {history.length > 0 && (
+              <div className="mt-12 text-left bg-white p-8 rounded-2xl shadow-inner border border-gray-200">
+                <h4 className="text-2xl font-bold text-indigo-700 mb-6 flex items-center justify-center">
+                  <History className="mr-2 text-gray-600" size={28} /> Historial de Análisis de Prompts
+                </h4>
+                <div className="space-y-6">
+                  {history.map((item, index) => (
+                    <div key={item.id} className="bg-gray-50 p-6 rounded-xl shadow-sm border border-gray-100">
+                      <div className="flex justify-between items-center mb-3">
+                        <p className="text-sm text-gray-500">Analizado el: {item.timestamp}</p>
+                        <p className="text-sm font-semibold text-indigo-600">Puntuación: {item.analysis.score}/10</p>
+                      </div>
+                      <p className="font-semibold text-gray-700 mb-2">Prompt Original:</p>
+                      <p className="text-md text-gray-800 italic bg-gray-100 p-3 rounded-md border border-gray-200 break-words">{item.originalPrompt}</p>
+                      <p className="font-semibold text-gray-700 mt-4 mb-2">Prompt Reescrito:</p>
+                      <p className="text-md text-gray-800 bg-green-50 p-3 rounded-md border border-green-200 break-words">{item.analysis.rewritten_prompt}</p>
+                      <p className="text-sm text-gray-600 mt-3">Sesgo: {item.analysis.bias} | Claridad: {item.analysis.clarity} | Tono: {item.analysis.tone}</p>
+                      <p className="text-sm text-gray-600 mt-1">Explicación: {item.analysis.explanation}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -714,8 +655,3 @@ ${promptInput}`;
 };
 
 export default App;
-<<<<<<< HEAD
-=======
-
-
->>>>>>> a4e7e9e872805c30ad0dbe3c88d38d079c5e1b24
