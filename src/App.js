@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Lightbulb, Code, Target, Zap, TrendingUp, Handshake, DollarSign, Brain, Gem, ShieldCheck, RefreshCw, Layers, Upload, TestTube, Rocket, MessageSquareText, ThumbsUp, XCircle, ChevronRight, BarChart3, Loader2 } from 'lucide-react';
+<<<<<<< HEAD
 // Importación del SDK de Google Generative AI
 import { GoogleGenerativeAI } from '@google/generative-ai';
+=======
+>>>>>>> a4e7e9e872805c30ad0dbe3c88d38d079c5e1b24
 
 // Componente del Modal de Solicitud de Demo
 const RequestDemoModal = ({ onClose }) => {
@@ -167,6 +170,7 @@ Responde en JSON con el siguiente formato:
 Prompt original:
 ${promptInput}`;
 
+<<<<<<< HEAD
       // Usa la clave API del archivo .env
       const apiKey = process.env.REACT_APP_GEMINI_API_KEY; 
 
@@ -218,6 +222,66 @@ ${promptInput}`;
       } else {
           alert('Hubo un error al procesar tu prompt. Por favor, revisa la consola para más detalles.');
       }
+=======
+      const chatHistory = [];
+      chatHistory.push({ role: "user", parts: [{ text: promptForLLM }] });
+
+      const payload = {
+        contents: chatHistory,
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              "clarity": { "type": "STRING" },
+              "tone": { "type": "STRING" },
+              "bias": { "type": "STRING" },
+              "rewritten_prompt": { "type": "STRING" },
+              "score": { "type": "NUMBER" },
+              "explanation": { "type": "STRING" }
+            },
+            required: ["clarity", "tone", "bias", "rewritten_prompt", "score", "explanation"]
+          }
+        }
+      };
+
+      const apiKey = ""; // La API key se proporciona en tiempo de ejecución por Canvas
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (result.candidates && result.candidates.length > 0 &&
+          result.candidates[0].content && result.candidates[0].content.parts &&
+          result.candidates[0].content.parts.length > 0) {
+        const jsonString = result.candidates[0].content.parts[0].text;
+        const analysis = JSON.parse(jsonString);
+
+        // Actualiza los estados con los datos reales del LLM
+        setMockRewrittenPrompt(analysis.rewritten_prompt);
+        setMockScore(`Puntuación: ${analysis.score}/10 (Claridad: ${analysis.clarity}, Tono: ${analysis.tone})`);
+        setMockRedTeamResult(`Sesgo: ${analysis.bias}. Explicación: ${analysis.explanation}`);
+
+        // Incrementar el contador de prompts simulados/analizados
+        setPromptsTestedCount(prevCount => {
+          const newCount = prevCount + 1;
+          localStorage.setItem('promptsTestedCountMock', newCount.toString());
+          return newCount;
+        });
+
+      } else {
+        alert('No se pudo obtener un análisis válido del LLM. Inténtalo de nuevo.');
+        console.error("Respuesta inesperada del LLM:", result);
+      }
+    } catch (error) {
+      console.error("Error al analizar el prompt con LLM:", error);
+      alert('Hubo un error al procesar tu prompt. Por favor, revisa la consola para más detalles.');
+>>>>>>> a4e7e9e872805c30ad0dbe3c88d38d079c5e1b24
     } finally {
       setIsLoading(false); // Desactiva el estado de carga
     }
@@ -650,3 +714,8 @@ ${promptInput}`;
 };
 
 export default App;
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> a4e7e9e872805c30ad0dbe3c88d38d079c5e1b24
