@@ -1,0 +1,13 @@
+# dependencias
+/node_modules
+
+# compilacion
+/build
+
+# otros archivos temporales/locales
+.DS_Store
+.env
+.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
